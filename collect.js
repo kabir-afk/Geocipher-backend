@@ -1,6 +1,5 @@
 // collect.js
 const fs = require("fs");
-const fetch = require("node-fetch");
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const STEP = 1; // degree step
