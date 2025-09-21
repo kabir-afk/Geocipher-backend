@@ -1,5 +1,8 @@
 name: StreetView Collector
 
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: "0 0 * * *"   # run every day at midnight UTC
