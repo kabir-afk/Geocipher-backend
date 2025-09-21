@@ -1,11 +1,12 @@
 // collect.js
 const fs = require("fs");
 
-const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-const STEP = 1; // degree step
-const LIMIT = 10000; // max checks per run
+// CONFIG
+const STEP = 1; // Degree step for latitude & longitude
+const LIMIT = 10000; // Max coordinates checked per run
+const RETRY_LIMIT = 3; // Retry per coordinate on failure
 
-// Load progress
+// Load last progress
 let progress = { lat: -90, lng: -180 };
 if (fs.existsSync("progress.json")) {
   progress = JSON.parse(fs.readFileSync("progress.json", "utf8"));
@@ -14,28 +15,56 @@ if (fs.existsSync("progress.json")) {
 // Load existing coordinates
 let coordinates = [];
 if (fs.existsSync("coordinates.json")) {
-  coordinates = JSON.parse(fs.readFileSync("coordinates.json", "utf8"));
+  coordinates = fs
+    .readFileSync("coordinates.json", "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map(JSON.parse);
 }
 
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+if (!API_KEY) {
+  console.error("Error: GOOGLE_MAPS_API_KEY not set in environment variables.");
+  process.exit(1);
+}
+
+// Check one coordinate
 async function checkCoordinate(lat, lng) {
   const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=50000&key=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.status === "OK";
+  for (let attempt = 1; attempt <= RETRY_LIMIT; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.status === "OK";
+    } catch (err) {
+      console.warn(
+        `Attempt ${attempt} failed for ${lat},${lng}: ${err.message}`
+      );
+      if (attempt < RETRY_LIMIT) await new Promise((r) => setTimeout(r, 1000)); // wait before retry
+    }
+  }
+  return false;
 }
 
 async function run() {
-  let count = 0;
   let { lat, lng } = progress;
+  let checked = 0;
 
-  while (lat <= 90 && count < LIMIT) {
-    while (lng <= 180 && count < LIMIT) {
+  while (lat <= 90 && checked < LIMIT) {
+    while (lng <= 180 && checked < LIMIT) {
       const ok = await checkCoordinate(lat, lng);
       if (ok) {
-        coordinates.push({ lat, lng });
-        console.log(`✅ Found: ${lat}, ${lng}`);
+        const coord = { lat, lng };
+        coordinates.push(coord);
+        fs.appendFileSync("coordinates.json", JSON.stringify(coord) + "\n");
+        console.log(`✅ Found: ${lat},${lng}`);
       }
-      count++;
+
+      checked++;
+      // Save progress after each coordinate
+      fs.writeFileSync("progress.json", JSON.stringify({ lat, lng }, null, 2));
+
       lng += STEP;
     }
     if (lng > 180) {
@@ -44,11 +73,7 @@ async function run() {
     }
   }
 
-  // Save coordinates & progress
-  fs.writeFileSync("coordinates.json", JSON.stringify(coordinates, null, 2));
-  fs.writeFileSync("progress.json", JSON.stringify({ lat, lng }, null, 2));
-
-  console.log(`Run complete. Checked ${count} coordinates. Progress saved.`);
+  console.log(`Run complete. Checked ${checked} coordinates. Progress saved.`);
 }
 
 run();
