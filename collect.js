@@ -3,7 +3,7 @@ const fs = require("fs");
 
 // CONFIG
 const STEP = 1; // Degree step for lat/lng
-const LIMIT = 100; // Max coordinates checked per run
+const LIMIT = 10; // Max coordinates checked per run
 const RETRY_LIMIT = 3; // Retry per coordinate on failure
 
 // Load last progress
@@ -15,7 +15,7 @@ if (fs.existsSync("progress.json")) {
 // Load existing coordinates
 let coordinates = [];
 if (fs.existsSync("coordinates.json")) {
-  coordinates = fs.readFileSync("coordinates.json", "utf8");
+  coordinates = JSON.parse(fs.readFileSync("coordinates.json", "utf8"));
 }
 
 // Ensure API key exists
