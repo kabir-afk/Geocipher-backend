@@ -15,11 +15,7 @@ if (fs.existsSync("progress.json")) {
 // Load existing coordinates
 let coordinates = [];
 if (fs.existsSync("coordinates.json")) {
-  coordinates = fs
-    .readFileSync("coordinates.json", "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .map(JSON.parse);
+  coordinates = fs.readFileSync("coordinates.json", "utf8");
 }
 
 // Ensure API key exists
