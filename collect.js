@@ -2,8 +2,8 @@
 const fs = require("fs");
 
 // CONFIG
-const STEP = 1; // Degree step for latitude & longitude
-const LIMIT = 10000; // Max coordinates checked per run
+const STEP = 1; // Degree step for lat/lng
+const LIMIT = 1; // Max coordinates checked per run
 const RETRY_LIMIT = 3; // Retry per coordinate on failure
 
 // Load last progress
@@ -22,51 +22,63 @@ if (fs.existsSync("coordinates.json")) {
     .map(JSON.parse);
 }
 
+// Ensure API key exists
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 if (!API_KEY) {
   console.error("Error: GOOGLE_MAPS_API_KEY not set in environment variables.");
   process.exit(1);
 }
 
-// Check one coordinate
+// Check one coordinate via Street View Metadata API
 async function checkCoordinate(lat, lng) {
   const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=50000&key=${API_KEY}`;
+
   for (let attempt = 1; attempt <= RETRY_LIMIT; attempt++) {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      return data.status === "OK";
+      return data; // returns full JSON including location.lat/lng and status
     } catch (err) {
       console.warn(
         `Attempt ${attempt} failed for ${lat},${lng}: ${err.message}`
       );
-      if (attempt < RETRY_LIMIT) await new Promise((r) => setTimeout(r, 1000)); // wait before retry
+      if (attempt < RETRY_LIMIT) await new Promise((r) => setTimeout(r, 1000)); // retry delay
     }
   }
   return false;
 }
 
+// Main loop
 async function run() {
   let { lat, lng } = progress;
   let checked = 0;
 
   while (lat <= 90 && checked < LIMIT) {
     while (lng <= 180 && checked < LIMIT) {
-      const ok = await checkCoordinate(lat, lng);
-      if (ok) {
-        const coord = { lat, lng };
+      const result = await checkCoordinate(lat, lng);
+
+      if (result && result.status === "OK") {
+        const panoLat = Number(result.location.lat.toFixed(6));
+        const panoLng = Number(result.location.lng.toFixed(6));
+
+        const coord = { panoLat, panoLng };
         coordinates.push(coord);
         fs.appendFileSync("coordinates.json", JSON.stringify(coord) + "\n");
-        console.log(`✅ Found: ${lat},${lng}`);
+
+        console.log(`✅ Found panorama at: ${panoLat},${panoLng}`);
+      } else if (result) {
+        console.log(`❌ No imagery at: ${lat},${lng}`);
       }
 
       checked++;
       // Save progress after each coordinate
-      fs.writeFileSync("progress.json", JSON.stringify({ lat, lng }, null, 2));
+      progress = { lat, lng };
+      fs.writeFileSync("progress.json", JSON.stringify(progress, null, 2));
 
       lng += STEP;
     }
+
     if (lng > 180) {
       lng = -180;
       lat += STEP;
