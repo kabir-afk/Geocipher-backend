@@ -58,9 +58,11 @@ async function run() {
         const panoLat = Number(result.location.lat.toFixed(6));
         const panoLng = Number(result.location.lng.toFixed(6));
 
-        const coord = { panoLat, panoLng };
+        const coord = { lat: panoLat, lng: panoLng };
         coordinates.push(coord);
-        fs.appendFileSync("coordinates.json", JSON.stringify(coord) + "\n");
+        fs.writeFileSync("coordinates.json", JSON.stringify(coord), (err) => {
+          console.log("❌ Error writing to JSON file ", err);
+        });
 
         console.log(`✅ Found panorama at: ${panoLat},${panoLng}`);
       } else if (result) {
