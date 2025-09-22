@@ -3,7 +3,7 @@ const fs = require("fs");
 
 // CONFIG
 const STEP = 1; // Degree step for lat/lng
-const LIMIT = 1; // Max coordinates checked per run
+const LIMIT = 100; // Max coordinates checked per run
 const RETRY_LIMIT = 3; // Retry per coordinate on failure
 
 // Load last progress
