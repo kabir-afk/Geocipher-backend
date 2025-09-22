@@ -49,6 +49,7 @@ async function checkCoordinate(lat, lng) {
 async function run() {
   let { lat, lng } = progress;
   let checked = 0;
+  let newCount = 0;
 
   while (lat <= 90 && checked < LIMIT) {
     while (lng <= 180 && checked < LIMIT) {
@@ -60,9 +61,19 @@ async function run() {
 
         const coord = { lat: panoLat, lng: panoLng };
         coordinates.push(coord);
-        fs.writeFileSync("coordinates.json", JSON.stringify(coord), (err) => {
-          console.log("❌ Error writing to JSON file ", err);
-        });
+        newCount++;
+        if (newCount >= LIMIT) {
+          try {
+            fs.writeFileSync(
+              "coordinates.json",
+              JSON.stringify(coordinates, null, 2)
+            );
+            console.log(`Saved ${coordinates.length} coordinates to file.`);
+          } catch (err) {
+            console.error("❌ Error writing to JSON file", err);
+          }
+          newCount = 0;
+        }
 
         console.log(`✅ Found panorama at: ${panoLat},${panoLng}`);
       } else if (result) {
