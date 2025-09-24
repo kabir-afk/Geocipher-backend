@@ -14,3 +14,9 @@ class User(models.Model):
 class Coordinates(models.Model):
     name = models.CharField()
     coordinates = models.JSONField()
+
+class Score(models.Model):
+    round = models.IntegerField()
+    user_location = models.FloatField()
+    actual_location = models.FloatField()
+    score = models.IntegerField(default=0)
