@@ -3,7 +3,7 @@ const fs = require("fs");
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const STEP = 1; // degree step
-const LIMIT = 65341; // max checks per run
+const LIMIT = 1; // max checks per run
 
 // Load progress
 let progress = { lat: -90, lng: -180 };
@@ -32,18 +32,18 @@ async function run() {
   while (lat <= 90 && count < LIMIT) {
     while (lng <= 180 && count < LIMIT) {
       let result = await checkCoordinate(lat, lng);
+      // console.log(result);
 
       if (result.status === "OK") {
         let newCoord = {
           lat: result.location.lat.toFixed(6),
           lng: result.location.lng.toFixed(6),
+          panoId: result.pano_id,
         };
 
         // Corrected logic: Check if the new coordinate already exists in the array
         const isDuplicate = coordinates.some(
-          (existingCoord) =>
-            existingCoord.lat === newCoord.lat &&
-            existingCoord.lng === newCoord.lng
+          (existingCoord) => existingCoord.panoId === newCoord.panoId
         );
 
         if (!isDuplicate) {
