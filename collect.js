@@ -3,7 +3,7 @@ const fs = require("fs");
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const STEP = 1; // degree step
-const LIMIT = 1; // max checks per run
+const LIMIT = 65341; // max checks per run
 
 // Load progress
 let progress = { lat: -90, lng: -180 };
