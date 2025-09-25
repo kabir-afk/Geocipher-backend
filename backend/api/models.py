@@ -17,6 +17,7 @@ class Coordinates(models.Model):
 
 class Score(models.Model):
     round = models.IntegerField()
-    user_location = models.FloatField()
-    actual_location = models.FloatField()
+    user_location = models.JSONField()
+    actual_location = models.JSONField()
+    distance = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
