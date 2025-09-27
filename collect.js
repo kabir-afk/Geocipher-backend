@@ -14,8 +14,8 @@ console.log(progress);
 
 // Load existing coordinates
 let coordinates = [];
-if (fs.existsSync("coordinates.json")) {
-  coordinates = JSON.parse(fs.readFileSync("coordinates.json", "utf8"));
+if (fs.existsSync("test.json")) {
+  coordinates = JSON.parse(fs.readFileSync("test.json", "utf8"));
 }
 
 async function checkCoordinate(lat, lng) {
@@ -36,8 +36,8 @@ async function run() {
 
       if (result.status === "OK") {
         let newCoord = {
-          lat: result.location.lat.toFixed(6),
-          lng: result.location.lng.toFixed(6),
+          lat: result.location.lat,
+          lng: result.location.lng,
           panoId: result.pano_id,
         };
 
@@ -67,7 +67,7 @@ async function run() {
   }
 
   // Save coordinates & progress
-  fs.writeFileSync("coordinates.json", JSON.stringify(coordinates, null, 2));
+  fs.writeFileSync("test.json", JSON.stringify(coordinates, null, 2));
   fs.writeFileSync("progress.json", JSON.stringify({ lat, lng }, null, 2));
 
   console.log(`Run complete. Checked ${count} coordinates. Progress saved.`);
