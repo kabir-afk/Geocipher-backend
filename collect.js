@@ -19,10 +19,14 @@ if (fs.existsSync("test.json")) {
 }
 
 async function checkCoordinate(lat, lng) {
-  const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=50000&key=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data;
+  try {
+    const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=50000&key=${API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 async function run() {
