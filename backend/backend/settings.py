@@ -157,3 +157,7 @@ REST_FRAMEWORK = {
 }
 
 SITE_ID = 1
+
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+SOCIALACCOUNT_LOGIN_ON_GET = True
