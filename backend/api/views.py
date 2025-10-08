@@ -1,8 +1,10 @@
 from django.shortcuts import render
+from django.contrib.auth.models import User
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
-from rest_framework import status
-from .models import User , Coordinates, Score
+from rest_framework import status , generics
+from .models import Coordinates, Score
 from .serializers import UserSerializer , CoordinatesSerializer , ScoreSerializer
 from .utils import score_exponential , get_id_token# Create your views here.
 class CoordinatesList(APIView):
@@ -36,3 +38,8 @@ class GoogleLogin(APIView):
             code = req.data['code']
             id_token = get_id_token(code)
         return Response("ok")
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
