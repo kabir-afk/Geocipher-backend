@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 from environ import Env
 env = Env()
@@ -153,6 +154,12 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+]
+
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -165,3 +172,8 @@ SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# SIMPLE_JWT = {
+#     "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+#     # "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+# }
