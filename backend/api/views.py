@@ -46,8 +46,7 @@ class RegisterView(generics.CreateAPIView):
 
 class ProtectedView(APIView):
     permission_classes=[IsAuthenticated]
-    def get(self,req):
-        data={
-            'status':"authenticated user's protected view" 
-        }
-        return Response(data)
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
