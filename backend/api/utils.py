@@ -3,6 +3,11 @@ from environ import Env
 import urllib.parse
 import requests
 import jwt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 env = Env()
 env.read_env()
@@ -14,26 +19,31 @@ def score_exponential(distance, max_score=5000, decay_rate=0.0005):
     """
     return round(max_score * math.exp(-decay_rate * distance))
 
-def get_id_token(code):
-    token_endpoint = 'https://oauth2.googleapis.com/token'
-    payload={
-        'code':code,
-        'client_id':env('CLIENT_ID'),
-        'secret':env('CLIENT_SECRET'),
-        'grant_type':'authorization',
-        'redirect_uri':'postmessage'
-    }
+def id_token_data(code):
+    id_info = id_token.verify_oauth2_token(
+        code,
+        google_requests.Request(),
+        env('CLIENT_ID')
+    )
+    email = id_info['email']
+    first_name = id_info.get('given_name', '')
+    last_name = id_info.get('family_name', '')
+    username = (first_name + last_name) or email.split('@')[0]
+    return {'username': username, 'email': email}
 
-    body=urllib.parse.urlencode(payload)
-    headers={
-        'content-type':'application/x-www-form-urlendcoded'
+def get_token_pair_and_set_cookie(user,data,status):
+    refresh = RefreshToken.for_user(user)
+    response_data = {
+        "access_token": str(refresh.access_token),
+        "data":data
     }
-
-    response = requests.post(token_endpoint,body=body,headers=headers)
-    if response.ok:
-        id_token = response.json()['id_token']
-        return jwt.decode(id_token,options={
-            "verify_signature":False
-        })
-    else:
-        print(response.json())
+    response = Response(response_data, status=status)
+    response.set_cookie(
+        key='refresh_token',
+        value=str(refresh),
+        httponly=True,
+        secure=True,        # Use True in production (HTTPS)
+        samesite='None',    # Required for cross-site requests (e.g., if frontend on localhost:5173)
+        max_age=7 * 24 * 60 * 60,  # 7 days
+    )
+    return response
