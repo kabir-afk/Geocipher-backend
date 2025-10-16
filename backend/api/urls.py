@@ -6,4 +6,5 @@ urlpatterns = [
     path('auth/', views.RegisterView.as_view()),
     path('auth/google', views.GoogleLogin.as_view(), name='google_login'),
     path('protected-view/', views.ProtectedView.as_view()),
+    path('logout/', views.Logout.as_view()),
 ]
