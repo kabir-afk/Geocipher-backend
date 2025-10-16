@@ -69,3 +69,8 @@ class ProtectedView(APIView):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+class Logout(APIView):
+    def post(sel, req):
+        response = Response({"User logged out successfully"},status=status.HTTP_200_OK)
+        response.delete_cookie("refresh_token")
+        return response
