@@ -61,10 +61,14 @@ class GoogleLogin(APIView):
                 return response
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class RegisterView(APIView):
     permission_classes = [AllowAny]
+    def post(self, req):
+        data = req.data
+        serializer = UserSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return get_token_pair_and_set_cookie(user=user, data=serializer.data, status=status.HTTP_201_CREATED)
 
 class ProtectedView(APIView):
     permission_classes=[IsAuthenticated]
@@ -84,6 +88,9 @@ class ProtectedView(APIView):
         }
         return Response(data,status=status.HTTP_200_OK)
 class Logout(APIView):
+    authentication_classes = []
+    permission_classes = []
+
     def post(sel, req):
         response = Response({"User logged out successfully"},status=status.HTTP_200_OK)
         response.delete_cookie("refresh_token")
