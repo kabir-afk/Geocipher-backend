@@ -16,6 +16,7 @@ class Coordinates(models.Model):
     coordinates = models.JSONField()
 
 class Score(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     round = models.IntegerField()
     user_location = models.JSONField()
     actual_location = models.JSONField()
