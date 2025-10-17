@@ -15,6 +15,7 @@ class CoordinatesList(APIView):
         return Response(serializer.data)
 
 class ScoreList(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,req):
         scores = Score.objects.all()
         serializer = ScoreSerializer(scores, many=True)
@@ -27,9 +28,11 @@ class ScoreList(APIView):
 
         serializer = ScoreSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+            serializer.save(user=req.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class GoogleLogin(APIView):
@@ -67,8 +70,19 @@ class ProtectedView(APIView):
     permission_classes=[IsAuthenticated]
     def get(self, request):
         user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        score = Score.objects.filter(user=user)
+        if score.exists():
+            serializer = ScoreSerializer(score,many=True)
+            score_data = serializer.data
+            score_data.sort(key=lambda round: round['score'])
+            score_data.reverse()
+        else :
+            score_data = 0
+        data = {
+            "username": user.username,
+            "score": score_data
+        }
+        return Response(data,status=status.HTTP_200_OK)
 class Logout(APIView):
     def post(sel, req):
         response = Response({"User logged out successfully"},status=status.HTTP_200_OK)
