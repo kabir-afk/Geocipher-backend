@@ -27,3 +27,4 @@ class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Score
         fields = "__all__"
+        read_only_fields = ['user']
