@@ -6,7 +6,10 @@ from rest_framework.views import APIView
 from rest_framework import status , generics
 from .models import Coordinates, Score
 from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer
-from .utils import score_exponential , id_token_data , get_token_pair_and_set_cookie# Create your views here.
+from .utils import score_exponential , id_token_data , get_token_pair_and_set_cookie
+import math
+
+# Create your views here.
 class CoordinatesList(APIView):
 
     def get(self,req):
@@ -23,9 +26,6 @@ class ScoreList(APIView):
     def post(self,req):
         data = req.data.copy()
         data['score'] = score_exponential(data['distance'])
-        print(data)
-        print(f"score : {data['score']}")
-
         serializer = ScoreSerializer(data=data)
         if serializer.is_valid():
             serializer.save(user=req.user)
@@ -78,13 +78,16 @@ class ProtectedView(APIView):
         if score.exists():
             serializer = ScoreSerializer(score,many=True)
             score_data = serializer.data
-            score_data.sort(key=lambda round: round['score'])
-            score_data.reverse()
+            all_scores = list(map(lambda item:item['score'] , score_data))
+            avg_score = math.floor(sum(all_scores)/len(all_scores))
+            max_score = max(all_scores)
         else :
             score_data = 0
         data = {
             "username": user.username,
-            "score": score_data
+            "score": score_data,
+            "avg_score": avg_score,
+            "max_score": max_score
         }
         return Response(data,status=status.HTTP_200_OK)
 class Logout(APIView):
