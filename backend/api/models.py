@@ -4,19 +4,14 @@ import json
 from pathlib import Path
 
 # Create your models here.
-class Profile(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE)
-    bio = models.TextField()
-
-    def __str__(self):
-        return self.username
-
 class Coordinates(models.Model):
     name = models.CharField()
     coordinates = models.JSONField()
 
-class Score(models.Model):
+class Game(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+class Score(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE , related_name='rounds',default=1)
     round = models.IntegerField()
     user_location = models.JSONField()
     actual_location = models.JSONField()
