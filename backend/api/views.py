@@ -1,11 +1,11 @@
-from django.shortcuts import render
 from django.contrib.auth.models import User
+from django.db.models import Avg, Max, Min
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework import status , generics
-from .models import Coordinates, Score
-from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer
+from rest_framework import status
+from .models import Coordinates, Score , Game
+from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer , GameSerializer
 from .utils import score_exponential , id_token_data , get_token_pair_and_set_cookie
 import math
 
@@ -16,6 +16,13 @@ class CoordinatesList(APIView):
         coords = Coordinates.objects.first()
         serializer = CoordinatesSerializer(coords)
         return Response(serializer.data)
+
+class GameView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self,req):
+        game = Game.objects.create(user=req.user)
+        serializer = GameSerializer(game)
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
     permission_classes = [IsAuthenticated]
@@ -28,7 +35,7 @@ class ScoreList(APIView):
         data['score'] = score_exponential(data['distance'])
         serializer = ScoreSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(user=req.user)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             print(serializer.errors)
@@ -74,20 +81,23 @@ class ProtectedView(APIView):
     permission_classes=[IsAuthenticated]
     def get(self, request):
         user = request.user
-        score = Score.objects.filter(user=user)
-        if score.exists():
-            serializer = ScoreSerializer(score,many=True)
+        game_round_data = Game.objects.filter(user=user)
+        if game_round_data.exists():
+            serializer = GameSerializer(game_round_data,many=True)
             score_data = serializer.data
-            all_scores = list(map(lambda item:item['score'] , score_data))
-            avg_score = math.floor(sum(all_scores)/len(all_scores))
-            max_score = max(all_scores)
+            stats = Score.objects.aggregate(
+                avg_score=Avg('score'),
+                max_score=Max('score'),
+                min_distance=Min('distance')
+            )
         else :
             score_data = 0
         data = {
             "username": user.username,
             "score": score_data,
-            "avg_score": avg_score,
-            "max_score": max_score
+            "avg_score": math.floor(stats['avg_score']),
+            "max_score": stats['max_score'],
+            "min_distance": stats['min_distance']
         }
         return Response(data,status=status.HTTP_200_OK)
 class Logout(APIView):
