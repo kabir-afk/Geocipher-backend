@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Coordinates, Score
+from .models import Coordinates, Score , Game
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True,min_length=8,style={"input_type":"password"})
@@ -26,5 +26,10 @@ class CoordinatesSerializer(serializers.ModelSerializer):
 class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Score
+        fields = "__all__"
+class GameSerializer(serializers.ModelSerializer):
+    rounds = ScoreSerializer(many=True,read_only=True)
+    class Meta:
+        model = Game
         fields = "__all__"
         read_only_fields = ['user']
