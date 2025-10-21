@@ -78,28 +78,42 @@ class RegisterView(APIView):
         return get_token_pair_and_set_cookie(user=user, data=serializer.data, status=status.HTTP_201_CREATED)
 
 class ProtectedView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         user = request.user
         game_round_data = Game.objects.filter(user=user)
         if game_round_data.exists():
-            serializer = GameSerializer(game_round_data,many=True)
+            serializer = GameSerializer(game_round_data, many=True)
             score_data = serializer.data
+
             stats = game_round_data.aggregate(
                 avg_score=Avg('rounds__score'),
                 max_score=Max('rounds__score'),
                 min_distance=Min('rounds__distance')
             )
-        else :
-            score_data = 0
-        data = {
-            "username": user.username,
-            "score": score_data,
-            "avg_score": math.floor(stats['avg_score']),
-            "max_score": stats['max_score'],
-            "min_distance": stats['min_distance']
-        }
-        return Response(data,status=status.HTTP_200_OK)
+
+            avg_score = stats['avg_score']
+            avg_score = math.floor(avg_score) if avg_score is not None else 0
+
+            data = {
+                "username": user.username,
+                "score": score_data,
+                "avg_score": avg_score,
+                "max_score": stats['max_score'],
+                "min_distance": stats['min_distance']
+            }
+        else:
+            data = {
+                "username": user.username,
+                "score": [],
+                "avg_score": 0,
+                "max_score": 0,
+                "min_distance": None
+            }
+
+        return Response(data, status=status.HTTP_200_OK)
+
 class Logout(APIView):
     authentication_classes = []
     permission_classes = []
