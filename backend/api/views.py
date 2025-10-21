@@ -25,7 +25,7 @@ class GameView(APIView):
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self,req):
         scores = Score.objects.all()
         serializer = ScoreSerializer(scores, many=True)
@@ -85,10 +85,10 @@ class ProtectedView(APIView):
         if game_round_data.exists():
             serializer = GameSerializer(game_round_data,many=True)
             score_data = serializer.data
-            stats = Score.objects.aggregate(
-                avg_score=Avg('score'),
-                max_score=Max('score'),
-                min_distance=Min('distance')
+            stats = game_round_data.aggregate(
+                avg_score=Avg('rounds__score'),
+                max_score=Max('rounds__score'),
+                min_distance=Min('rounds__distance')
             )
         else :
             score_data = 0
