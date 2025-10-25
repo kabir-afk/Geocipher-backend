@@ -1,6 +1,18 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
+from .models import Coordinates
+from .serializers import CoordinatesSerializer
+from channels.db import database_sync_to_async
+import random
+
+@database_sync_to_async
+def get_random_coordinates(self):
+    random_index = random.randint(1, 299250)
+    coords = Coordinates.objects.first()
+    serializer = CoordinatesSerializer(coords)
+    all_coords = serializer.data['coordinates']
+    return all_coords[random_index]
 
 class LobbyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -18,6 +30,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             rooms[target_room] = 1
         cache.set("rooms", rooms)
 
+        current_count = rooms[target_room]
+        room_is_full = current_count >= ROOM_SIZE
+
+
         self.room_name = target_room
         await self.channel_layer.group_add(self.room_name, self.channel_name)
         await self.accept()
@@ -27,6 +43,13 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             "room_name": self.room_name,
             "current_count": rooms[self.room_name]
         }))
+
+        if room_is_full :
+            await self.channel_layer.group_send(self.room_name, {
+                "type": "room_full_notification",
+                "room_name": self.room_name,
+                "total_users": current_count
+            })
 
     async def disconnect(self, close_code):
         rooms = cache.get("rooms", {})
@@ -55,5 +78,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'error': 'Invalid JSON format'
             }))
     async def lobby_message(self, event):
-            message = event['message']
-            await self.send(message)
+        message = event['message']
+        await self.send(message)
+
+    async def room_full_notification(self, event):
+        coordinate = await get_random_coordinates(self)
+        await self.send(text_data=json.dumps(coordinate))
