@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'dj_rest_auth',
     'corsheaders',
+    'channels',
     'api',
 ]
 
@@ -87,6 +88,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 SOCIALACCOUNT_PROVIDERS={
     'google':{
@@ -174,6 +182,6 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # SIMPLE_JWT = {
-#     "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
-#     # "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+#     "ACCESS_TOKEN_LIFETIME": timedelta(seconds=10),
+#     "REFRESH_TOKEN_LIFETIME": timedelta(seconds=20),
 # }
