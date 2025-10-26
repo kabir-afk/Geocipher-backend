@@ -16,7 +16,7 @@ def get_random_coordinates(self):
 
 class LobbyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        ROOM_SIZE = 5
+        ROOM_SIZE = 2
 
         rooms = cache.get("rooms", {})
         target_room = None
@@ -45,10 +45,11 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         }))
 
         if room_is_full :
+            coordinate = await get_random_coordinates(self)
+
             await self.channel_layer.group_send(self.room_name, {
                 "type": "room_full_notification",
-                "room_name": self.room_name,
-                "total_users": current_count
+                "coordinate": coordinate ,
             })
 
     async def disconnect(self, close_code):
@@ -82,5 +83,5 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         await self.send(message)
 
     async def room_full_notification(self, event):
-        coordinate = await get_random_coordinates(self)
+        coordinate = event['coordinate']
         await self.send(text_data=json.dumps(coordinate))
