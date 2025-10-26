@@ -84,4 +84,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
     async def room_full_notification(self, event):
         coordinate = event['coordinate']
-        await self.send(text_data=json.dumps(coordinate))
+        await self.send(text_data=json.dumps({
+            "event": "room_full",
+            "coordinate": coordinate ,
+        }))
