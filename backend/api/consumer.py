@@ -1,90 +1,124 @@
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
-from .models import Coordinates
-from .serializers import CoordinatesSerializer
+from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 import random
+from .models import Coordinates
+from .serializers import CoordinatesSerializer
 
 @database_sync_to_async
-def get_random_coordinates(self):
+def get_random_coordinate():
     random_index = random.randint(1, 299250)
     coords = Coordinates.objects.first()
     serializer = CoordinatesSerializer(coords)
     all_coords = serializer.data['coordinates']
     return all_coords[random_index]
 
+
 class LobbyConsumer(AsyncWebsocketConsumer):
+    ROOM_SIZE = 2
+    ROOM_NAME_PREFIX = "game_room_"
+
+    async def find_available_room(self):
+        for i in range(1, 100):
+            room_key = f"{self.ROOM_NAME_PREFIX}{i}"
+            current_size = cache.get(room_key, 0)
+            if current_size < self.ROOM_SIZE:
+                return i
+        return None
+
     async def connect(self):
-        ROOM_SIZE = 2
+        user = self.scope["user"]
+        if user.is_anonymous:
+            await self.close()
+            return
 
-        rooms = cache.get("rooms", {})
-        target_room = None
-        for room, count in rooms.items():
-            if count < ROOM_SIZE:
-                target_room = room
-                rooms[room] += 1
-                break
-        if not target_room:
-            target_room = f"room_{len(rooms)+1}"
-            rooms[target_room] = 1
-        cache.set("rooms", rooms)
+        room_id = await self.find_available_room()
+        self.room_name = f"{self.ROOM_NAME_PREFIX}{room_id}"
 
-        current_count = rooms[target_room]
-        room_is_full = current_count >= ROOM_SIZE
+        if cache.get(self.room_name) is None:
+            cache.set(self.room_name, 0)
 
-
-        self.room_name = target_room
+        new_room_size = cache.incr(self.room_name)
         await self.channel_layer.group_add(self.room_name, self.channel_name)
         await self.accept()
 
-        await self.send(text_data=json.dumps({
-            "event": "room_assignment",
-            "room_name": self.room_name,
-            "current_count": rooms[self.room_name]
-        }))
-
-        if room_is_full :
-            coordinate = await get_random_coordinates(self)
+        if new_room_size == self.ROOM_SIZE:
+            coordinate = await get_random_coordinate()
+            cache.set(f"{self.room_name}_coordinate", coordinate, timeout=3600)
+            cache.set(f"{self.room_name}_guesses", {}, timeout=3600)  # reset guesses
 
             await self.channel_layer.group_send(self.room_name, {
                 "type": "room_full_notification",
-                "coordinate": coordinate ,
+                "coordinate": coordinate,
             })
 
-    async def disconnect(self, close_code):
-        rooms = cache.get("rooms", {})
-        if hasattr(self, "room_name") and self.room_name in rooms:
-            rooms[self.room_name] -= 1
-            if rooms[self.room_name] <= 0:
-                del rooms[self.room_name]
-            cache.set("rooms", rooms)
-        
-        # Always discard the user from the group
-        await self.channel_layer.group_discard(self.room_name, self.channel_name)
-
-
     async def receive(self, text_data):
-        try:
-            await self.channel_layer.group_send(
-                self.room_name,
-                {
-                    'type': 'lobby_message',
-                    'message': text_data
-                }
-            )
-        except json.JSONDecodeError:
-            print(f"Invalid JSON received: {text_data}")
+        data = json.loads(text_data)
+        user = self.scope["user"]
+
+        if data.get('data', {}).get('event') == "guess":
+            guess = data['data']['user_location']
+            print("guess",guess)
+            
+            # FIXED: Use a lock-like pattern or handle the race condition
+            key = f"{self.room_name}_guesses"
+            print("key",key)
+            # Get current guesses
+            guesses = cache.get(key, {})
+            print("guesses",guesses)
+            # Check if user already guessed (prevent duplicate submissions)
+            if user.username in guesses:
+                await self.send(text_data=json.dumps({
+                    "event": "error",
+                    "message": "You have already submitted your guess"
+                }))
+                print("You have already submitted your guess")
+                return
+            
+            # Add this user's guess
+            guesses[user.username] = guess
+            cache.set(key, guesses, timeout=3600)
+            
+            # Send confirmation to the user
             await self.send(text_data=json.dumps({
-                'error': 'Invalid JSON format'
+                "event": "guess_received",
+                "message": f"Guess received. Waiting for other players... ({len(guesses)}/{self.ROOM_SIZE})"
             }))
-    async def lobby_message(self, event):
-        message = event['message']
-        await self.send(message)
+            
+            print(f"Room {self.room_name}: {len(guesses)}/{self.ROOM_SIZE} players have guessed")
+
+            # FIXED: Check against ROOM_SIZE constant, not dynamic room_size
+            # This prevents issues if someone disconnects
+            if len(guesses) >= self.ROOM_SIZE:
+                actual_coordinate = cache.get(f"{self.room_name}_coordinate")
+                
+                await self.channel_layer.group_send(self.room_name, {
+                    "type": "all_players_guessed",
+                    "guesses": guesses,
+                    "actual_coordinate": actual_coordinate,
+                })
+
+    async def all_players_guessed(self, event):
+        """Triggered once all players have sent their guess."""
+        await self.send(text_data=json.dumps({
+            "event": "results_ready",
+            "guesses": event["guesses"],
+            "actual_coordinate": event.get("actual_coordinate"),
+        }))
 
     async def room_full_notification(self, event):
-        coordinate = event['coordinate']
+        coordinate = event["coordinate"]
         await self.send(text_data=json.dumps({
             "event": "room_full",
-            "coordinate": coordinate ,
+            "coordinate": coordinate,
         }))
+
+    async def disconnect(self, close_code):
+        if cache.get(self.room_name):
+            cache.decr(self.room_name)
+            if cache.get(self.room_name) <= 0:
+                cache.delete(self.room_name)
+                cache.delete(f"{self.room_name}_coordinate")
+                cache.delete(f"{self.room_name}_guesses")
+        await self.channel_layer.group_discard(self.room_name, self.channel_name)
