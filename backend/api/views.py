@@ -25,14 +25,18 @@ class GameView(APIView):
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self,req):
         scores = Score.objects.all()
         serializer = ScoreSerializer(scores, many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
     def post(self,req):
         data = req.data.copy()
-        data['score'] = score_exponential(data['distance'])
+        actual_location = data['actual_location']
+        user_location = data['user_location']
+        score,distance = score_exponential(actual_location,user_location).values()
+        data['score'] = score
+        data['distance'] = distance
         serializer = ScoreSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
