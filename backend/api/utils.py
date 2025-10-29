@@ -1,8 +1,5 @@
 import math
 from environ import Env
-import urllib.parse
-import requests
-import jwt
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import status
@@ -12,12 +9,30 @@ from rest_framework_simplejwt.tokens import RefreshToken
 env = Env()
 env.read_env()
 
-def score_exponential(distance, max_score=5000, decay_rate=0.0005):
+def score_exponential(actual_location,user_location, max_score=5000, decay_rate=0.0005):
     """
     Score decreases exponentially with distance.
     Closer guesses are rewarded much more heavily.
     """
-    return round(max_score * math.exp(-decay_rate * distance))
+    lat1,lon1 = actual_location.values()
+    lat2,lon2 = user_location.values()
+
+    dLat = (lat2 - lat1) * math.pi / 180.0
+    dLon = (lon2 - lon1) * math.pi / 180.0
+
+    # convert to radians
+    lat1 = (lat1) * math.pi / 180.0
+    lat2 = (lat2) * math.pi / 180.0
+
+    # apply formulae
+    a = (pow(math.sin(dLat / 2), 2) + 
+         pow(math.sin(dLon / 2), 2) * 
+             math.cos(lat1) * math.cos(lat2));
+    rad = 6371
+    c = 2 * math.asin(math.sqrt(a))
+    distance = math.floor(rad * c)
+    score=round(max_score * math.exp(-decay_rate * distance))
+    return {"score":score,"distance":distance}
 
 def id_token_data(code):
     id_info = id_token.verify_oauth2_token(
