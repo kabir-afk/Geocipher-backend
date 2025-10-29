@@ -5,6 +5,7 @@ from channels.db import database_sync_to_async
 import random
 from .models import Coordinates
 from .serializers import CoordinatesSerializer
+from .utils import score_exponential
 
 @database_sync_to_async
 def get_random_coordinate():
@@ -59,6 +60,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
         if data.get('data', {}).get('event') == "guess":
             guess = data['data']['user_location']
+            actual_location = data['data']['actual_location']
+            stats = score_exponential(actual_location,guess)
+            merged_stats = guess | stats
             print("guess",guess)
             
             # FIXED: Use a lock-like pattern or handle the race condition
@@ -77,7 +81,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 return
             
             # Add this user's guess
-            guesses[user.username] = guess
+            guesses[user.username] = merged_stats
             cache.set(key, guesses, timeout=3600)
             
             # Send confirmation to the user
