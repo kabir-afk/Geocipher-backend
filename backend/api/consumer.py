@@ -58,7 +58,17 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         user = self.scope["user"]
 
-        if data.get('data', {}).get('event') == "guess":
+        if data.get('data', {}).get('event') == "next_round":
+            coordinate = await get_random_coordinate()
+            cache.set(f"{self.room_name}_coordinate", coordinate, timeout=3600)
+            cache.set(f"{self.room_name}_guesses", {}, timeout=3600)  # reset guesses
+
+            await self.channel_layer.group_send(self.room_name, {
+                "type": "room_full_notification",
+                "coordinate": coordinate,
+            })
+
+        elif data.get('data', {}).get('event') == "guess":
             guess = data['data']['user_location']
             actual_location = data['data']['actual_location']
             stats = score_exponential(actual_location,guess)
@@ -71,14 +81,15 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             # Get current guesses
             guesses = cache.get(key, {})
             print("guesses",guesses)
+            
             # Check if user already guessed (prevent duplicate submissions)
-            if user.username in guesses:
-                await self.send(text_data=json.dumps({
-                    "event": "error",
-                    "message": "You have already submitted your guess"
-                }))
-                print("You have already submitted your guess")
-                return
+            # if user.username in guesses:
+            #     await self.send(text_data=json.dumps({
+            #         "event": "error",
+            #         "message": "You have already submitted your guess"
+            #     }))
+            #     print("You have already submitted your guess")
+            #     return
             
             # Add this user's guess
             guesses[user.username] = merged_stats
