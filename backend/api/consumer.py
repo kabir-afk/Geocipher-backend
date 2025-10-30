@@ -58,15 +58,23 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         user = self.scope["user"]
 
-        if data.get('data', {}).get('event') == "next_round":
-            coordinate = await get_random_coordinate()
-            cache.set(f"{self.room_name}_coordinate", coordinate, timeout=3600)
-            cache.set(f"{self.room_name}_guesses", {}, timeout=3600)  # reset guesses
+        if data.get('data', {}).get('event') == "ready":
+            key = f"{self.room_name}_user_state"
+            user_state = cache.get(key,{})
+            user_state[user.username] = True
+            cache.set(key,user_state)
 
-            await self.channel_layer.group_send(self.room_name, {
-                "type": "room_full_notification",
-                "coordinate": coordinate,
-            })
+            if len(user_state) >= self.ROOM_SIZE:
+                coordinate = await get_random_coordinate()
+                cache.set(f"{self.room_name}_coordinate", coordinate, timeout=3600)
+                cache.set(f"{self.room_name}_guesses", {}, timeout=3600)
+                
+                cache.set(f"{self.room_name}_user_state", {}, timeout=3600)
+
+                await self.channel_layer.group_send(self.room_name, {
+                    "type": "room_full_notification",
+                    "coordinate": coordinate,
+                })
 
         elif data.get('data', {}).get('event') == "guess":
             guess = data['data']['user_location']
@@ -77,11 +85,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             
             # FIXED: Use a lock-like pattern or handle the race condition
             key = f"{self.room_name}_guesses"
-            print("key",key)
-            # Get current guesses
             guesses = cache.get(key, {})
-            print("guesses",guesses)
-            
+
             # Check if user already guessed (prevent duplicate submissions)
             # if user.username in guesses:
             #     await self.send(text_data=json.dumps({
@@ -101,8 +106,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 "message": f"Guess received. Waiting for other players... ({len(guesses)}/{self.ROOM_SIZE})"
             }))
             
-            print(f"Room {self.room_name}: {len(guesses)}/{self.ROOM_SIZE} players have guessed")
-
             # FIXED: Check against ROOM_SIZE constant, not dynamic room_size
             # This prevents issues if someone disconnects
             if len(guesses) >= self.ROOM_SIZE:
