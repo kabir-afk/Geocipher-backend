@@ -14,6 +14,9 @@ def score_exponential(actual_location,user_location, max_score=5000, decay_rate=
     Score decreases exponentially with distance.
     Closer guesses are rewarded much more heavily.
     """
+    if user_location == 0:
+        return {"score":0,"distance":0}
+    
     lat1,lon1 = actual_location.values()
     lat2,lon2 = user_location.values()
 
