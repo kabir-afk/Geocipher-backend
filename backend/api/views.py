@@ -18,14 +18,14 @@ class CoordinatesList(APIView):
         return Response(serializer.data)
 
 class GameView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def post(self,req):
         game = Game.objects.create(user=req.user)
         serializer = GameSerializer(game)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self,req):
         scores = Score.objects.all()
         serializer = ScoreSerializer(scores, many=True)
@@ -102,6 +102,7 @@ class ProtectedView(APIView):
 
             data = {
                 "username": user.username,
+                "date_joined":user.date_joined.strftime("%B %d, %Y"),
                 "score": score_data,
                 "avg_score": avg_score,
                 "max_score": stats['max_score'],
