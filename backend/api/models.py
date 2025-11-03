@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import date
 import json
 from pathlib import Path
 
@@ -17,3 +18,4 @@ class Score(models.Model):
     actual_location = models.JSONField()
     distance = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
+    date = models.DateField(default=date.today)
