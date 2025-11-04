@@ -1,12 +1,12 @@
 from django.contrib.auth.models import User
-from django.db.models import Avg, Max, Min
+from django.db.models import Avg, Max, Min , Sum
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework import status
 from .models import Coordinates, Score , Game
 from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer , GameSerializer
-from .utils import score_exponential , id_token_data , get_token_pair_and_set_cookie
+from .utils import score_exponential , xp_and_level_mech ,id_token_data , get_token_pair_and_set_cookie
 import math
 
 # Create your views here.
@@ -92,11 +92,12 @@ class ProtectedView(APIView):
             score_data = serializer.data
 
             stats = game_round_data.aggregate(
+                total_score = Sum('rounds__score'),
                 avg_score=Avg('rounds__score'),
                 max_score=Max('rounds__score'),
                 min_distance=Min('rounds__distance')
             )
-
+            res = xp_and_level_mech(stats['total_score'])
             avg_score = stats['avg_score']
             avg_score = math.floor(avg_score) if avg_score is not None else 0
 
@@ -106,15 +107,22 @@ class ProtectedView(APIView):
                 "score": score_data,
                 "avg_score": avg_score,
                 "max_score": stats['max_score'],
-                "min_distance": stats['min_distance']
+                "min_distance": stats['min_distance'],
+                "xp": res['xp'],
+                "xp_required": res['xp_required'],
+                "level": res['level']
             }
         else:
             data = {
                 "username": user.username,
+                "date_joined":user.date_joined.strftime("%B %d, %Y"),
                 "score": [],
                 "avg_score": 0,
                 "max_score": 0,
-                "min_distance": None
+                "min_distance": None,
+                "xp": 0,
+                "xp_required": 150,
+                "level": 1
             }
 
         return Response(data, status=status.HTTP_200_OK)
