@@ -38,6 +38,21 @@ def score_exponential(actual_location,user_location, max_score=5000, decay_rate=
     score=round(max_score * math.exp(-decay_rate * distance))
     return {"score":score,"distance":distance}
 
+base = 150
+def xp_and_level_mech(total_score):
+    '''
+        I'm going with a linear EXP mechanism , something like
+        exp = base * level
+    '''
+    level = 1
+    xp_required = base * level
+    while(total_score >= xp_required):
+        total_score -= xp_required
+        level += 1
+        xp_required = base * level
+        
+    return {"xp":total_score,"xp_required":xp_required,"level":level}
+
 def id_token_data(code):
     id_info = id_token.verify_oauth2_token(
         code,
@@ -47,7 +62,7 @@ def id_token_data(code):
     email = id_info['email']
     first_name = id_info.get('given_name', '')
     last_name = id_info.get('family_name', '')
-    username = (first_name + last_name) or email.split('@')[0]
+    username = (first_name +" "+ last_name) or email.split('@')[0]
     return {'username': username, 'email': email}
 
 def get_token_pair_and_set_cookie(user,data,status):
