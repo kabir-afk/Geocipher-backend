@@ -24,17 +24,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%8hv4_=&^f%%b6=of162jjow1_)2((4@7fn-#e^(gnk*j2@3fe'
-
+SECRET_KEY = env("SECRET_KEY")
+ENVIRONMENT = env("ENVIRONMENT", default="production")
+# ENVIRONMENT = "production"
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if ENVIRONMENT == 'development':
+    DEBUG = True
+else:
+    DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -97,14 +102,22 @@ CACHES = {
     }
 }
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+if ENVIRONMENT == 'development':
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': "channels.layers.InMemoryChannelLayer",
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [(env('REDIS_URL'))],
+            },
+        },
+    }
+
 
 SOCIALACCOUNT_PROVIDERS={
     'google':{
@@ -117,12 +130,19 @@ SOCIALACCOUNT_PROVIDERS={
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if ENVIRONMENT =='development':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(env('DATABASE_URL'))
+    }
+
 
 
 # Password validation
