@@ -62,7 +62,7 @@ def id_token_data(code):
     email = id_info['email']
     first_name = id_info.get('given_name', '')
     last_name = id_info.get('family_name', '')
-    username = (first_name +" "+ last_name) or email.split('@')[0]
+    username = (first_name + last_name) or email.split('@')[0]
     return {'username': username, 'email': email}
 
 def get_token_pair_and_set_cookie(user,data,status):
