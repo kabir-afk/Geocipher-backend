@@ -26,5 +26,5 @@ EOF
 
 # Finally start the ASGI server
 echo "Starting Daphne..."
-# daphne backend.asgi:application -b 0.0.0.0 -p $PORT
-daphne backend.asgi:application
+daphne backend.asgi:application -b 0.0.0.0 -p $PORT
+# daphne backend.asgi:application
