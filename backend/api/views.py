@@ -7,15 +7,17 @@ from rest_framework import status
 from .models import Coordinates, Score , Game
 from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer , GameSerializer
 from .utils import score_exponential , xp_and_level_mech ,id_token_data , get_token_pair_and_set_cookie
-import math
+import math , random
 
 # Create your views here.
 class CoordinatesList(APIView):
 
     def get(self,req):
+        random_index = random.randint(1, 299250)
         coords = Coordinates.objects.first()
         serializer = CoordinatesSerializer(coords)
-        return Response(serializer.data)
+        all_coords = serializer.data['coordinates']
+        return Response(all_coords[random_index])
 
 class GameView(APIView):
     # permission_classes = [IsAuthenticated]
