@@ -96,17 +96,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 ASGI_APPLICATION = 'backend.asgi.application'
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': (env('REDIS_URL')),
+
+if ENVIRONMENT == 'development':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6379/1',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': (env('REDIS_URL')),
+        }
+    }
 
 if ENVIRONMENT == 'development':
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': "channels.layers.InMemoryChannelLayer",
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [('127.0.0.1', 6379)],
+            },
         },
     }
 else:
