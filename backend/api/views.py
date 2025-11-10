@@ -13,11 +13,12 @@ import math , random
 class CoordinatesList(APIView):
 
     def get(self,req):
-        random_index = random.randint(1, 299250)
         coords = Coordinates.objects.first()
         serializer = CoordinatesSerializer(coords)
         all_coords = serializer.data['coordinates']
-        return Response(all_coords[random_index])
+        random_indices = random.sample(range(0, 299250), 5)        
+        coordinates = [all_coords[i] for i in random_indices]
+        return Response(coordinates)
 
 class GameView(APIView):
     # permission_classes = [IsAuthenticated]
