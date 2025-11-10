@@ -100,14 +100,14 @@ ASGI_APPLICATION = 'backend.asgi.application'
 if ENVIRONMENT == 'development':
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'BACKEND': 'django_redis.cache.RedisCache',
             'LOCATION': 'redis://127.0.0.1:6379/1',
         }
     }
 else:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'BACKEND': 'django_redis.cache.RedisCache',
             'LOCATION': (env('REDIS_URL')),
         }
     }
