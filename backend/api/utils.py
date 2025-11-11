@@ -1,4 +1,4 @@
-import math
+import math , requests
 from environ import Env
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -54,8 +54,27 @@ def xp_and_level_mech(total_score):
     return {"xp":total_score,"xp_required":xp_required,"level":level}
 
 def id_token_data(code):
+    token_res = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": env('CLIENT_ID'),
+            "client_secret": env('CLIENT_SECRET'),
+            "redirect_uri": "postmessage",
+            "grant_type": "authorization_code",
+        },
+        timeout=10,
+    ).json()
+    
+    if "error" in token_res:
+        raise ValueError("Invalid authorization code")
+    
+    token = token_res.get("id_token")
+    if not token:
+        raise ValueError("No id_token returned from Google.")
+
     id_info = id_token.verify_oauth2_token(
-        code,
+        token,
         google_requests.Request(),
         env('CLIENT_ID')
     )
