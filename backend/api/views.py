@@ -7,7 +7,7 @@ from rest_framework import status
 from .models import Coordinates, Score , Game
 from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer , GameSerializer
 from .utils import score_exponential , xp_and_level_mech ,id_token_data , get_token_pair_and_set_cookie
-import math , random
+import math , random 
 
 # Create your views here.
 class CoordinatesList(APIView):
@@ -58,12 +58,11 @@ class GoogleLogin(APIView):
     permission_classes = [AllowAny]
 
     def post(self, req):
-        credential = req.data.get('credential')
-        if not credential:
-            return Response({'detail': 'credential required'}, status=status.HTTP_400_BAD_REQUEST)
-
+        code = req.data.get('code')
+        if not code:
+            return Response({"detail": "code missing"}, status=400)
         try:
-            data = id_token_data(credential)
+            data = id_token_data(code=code)
         except ValueError:
             return Response({'detail': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
         
