@@ -23,10 +23,10 @@ class CoordinatesList(APIView):
 class GameView(APIView):
     permission_classes = [AllowAny]
     def post(self,req):
-        if req.user.is_authenticated:
-            game = Game.objects.create(user=req.user)
-            serializer = GameSerializer(game)
-            return Response(serializer.data,status=status.HTTP_201_CREATED)
+        user = req.user if req.user.is_authenticated else None
+        game = Game.objects.create(user=user)
+        serializer = GameSerializer(game)
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
     permission_classes = [AllowAny]

@@ -10,7 +10,7 @@ class Coordinates(models.Model):
     coordinates = models.JSONField()
 
 class Game(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True , blank=True)
 class Score(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE , related_name='rounds',default=1)
     round = models.IntegerField()
