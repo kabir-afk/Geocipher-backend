@@ -21,14 +21,15 @@ class CoordinatesList(APIView):
         return Response(coordinates)
 
 class GameView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     def post(self,req):
-        game = Game.objects.create(user=req.user)
-        serializer = GameSerializer(game)
-        return Response(serializer.data,status=status.HTTP_201_CREATED)
+        if req.user.is_authenticated:
+            game = Game.objects.create(user=req.user)
+            serializer = GameSerializer(game)
+            return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ScoreList(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     def get(self,req):
         scores = Score.objects.all()
         serializer = ScoreSerializer(scores, many=True)
@@ -38,17 +39,21 @@ class ScoreList(APIView):
         actual_location = data['actual_location']
         user_location = data['user_location']
         score,distance = score_exponential(actual_location,user_location).values()
-        data['score'] = score
-        data['distance'] = distance
-        serializer = ScoreSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            print(serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
+        response_payload = {
+            "score": score,
+            "distance": distance
+        }
+        if req.user.is_authenticated:
+            data['score'] = score
+            data['distance'] = distance
+            serializer = ScoreSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                print(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(response_payload,status=status.HTTP_200_OK)
 class GoogleLogin(APIView):
     permission_classes = [AllowAny]
 
