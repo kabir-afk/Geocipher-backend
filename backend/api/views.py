@@ -8,6 +8,8 @@ from .models import Coordinates, Score , Game
 from .serializers import UserSerializer ,GoogleAuthSerializer, CoordinatesSerializer , ScoreSerializer , GameSerializer
 from .utils import score_exponential , xp_and_level_mech ,id_token_data , get_token_pair_and_set_cookie
 import math , random 
+from django.db.models.functions import Coalesce
+from django.db.models import Value
 
 # Create your views here.
 class CoordinatesList(APIView):
@@ -94,43 +96,48 @@ class ProtectedView(APIView):
     def get(self, request):
         user = request.user
         game_round_data = Game.objects.filter(user=user)
-        if game_round_data.exists():
-            serializer = GameSerializer(game_round_data, many=True)
-            score_data = serializer.data
 
-            stats = game_round_data.aggregate(
-                total_score = Sum('rounds__score'),
-                avg_score=Avg('rounds__score'),
-                max_score=Max('rounds__score'),
-                min_distance=Min('rounds__distance')
-            )
-            res = xp_and_level_mech(stats['total_score'])
-            avg_score = stats['avg_score']
-            avg_score = math.floor(avg_score) if avg_score is not None else 0
-
+        if not game_round_data.exists():
             data = {
                 "username": user.username,
-                "date_joined":user.date_joined.strftime("%B %d, %Y"),
-                "score": score_data,
-                "avg_score": avg_score,
-                "max_score": stats['max_score'],
-                "min_distance": stats['min_distance'],
-                "xp": res['xp'],
-                "xp_required": res['xp_required'],
-                "level": res['level']
-            }
-        else:
-            data = {
-                "username": user.username,
-                "date_joined":user.date_joined.strftime("%B %d, %Y"),
+                "date_joined": user.date_joined.strftime("%B %d, %Y"),
                 "score": [],
                 "avg_score": 0,
                 "max_score": 0,
                 "min_distance": None,
                 "xp": 0,
                 "xp_required": 150,
-                "level": 1
+                "level": 1,
             }
+            return Response(data, status=status.HTTP_200_OK)
+
+        # Aggregation with Coalesce to prevent None
+        stats = game_round_data.aggregate(
+            total_score=Coalesce(Sum("rounds__score"), Value(0)),
+            avg_score=Avg("rounds__score"),
+            max_score=Max("rounds__score"),
+            min_distance=Min("rounds__distance"),
+        )
+
+        total_score = stats["total_score"] or 0
+        res = xp_and_level_mech(total_score)
+        avg_score = stats["avg_score"]
+        avg_score = math.floor(avg_score) if avg_score is not None else 0
+
+        serializer = GameSerializer(game_round_data, many=True)
+        score_data = serializer.data
+
+        data = {
+            "username": user.username,
+            "date_joined": user.date_joined.strftime("%B %d, %Y"),
+            "score": score_data,
+            "avg_score": avg_score,
+            "max_score": stats["max_score"] or 0,
+            "min_distance": stats["min_distance"],
+            "xp": res["xp"],
+            "xp_required": res["xp_required"],
+            "level": res["level"],
+        }
 
         return Response(data, status=status.HTTP_200_OK)
 
