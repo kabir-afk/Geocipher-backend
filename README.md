@@ -1,6 +1,6 @@
 # 🗺️ Geocipher Backend
 
-A feature-rich backend API for a Geoguessr-inspired game where players guess locations based on coordinates and earn scores based on accuracy.
+A feature-rich backend API for a Geoguessr-inspired game where players guess locations based on coordinates and earn scores based on accuracy. My frontend repo @ [Geocipher-frontend](https://github.com/kabir-afk/Geocipher-frontend)
 
 ## What It Does
 
