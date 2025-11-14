@@ -77,10 +77,10 @@ This is a Django REST API backend that powers a location-guessing game. Players 
    CLIENT_SECRET=your-google-client-secret
 
    # Database (development uses SQLite by default)
-   # DATABASE_URL=your-postgres-url  # For production
+   DATABASE_URL=your-postgres-url  # For production
 
    # Redis (optional for development, uses localhost:6379 by default)
-   # REDIS_URL=redis://...
+   REDIS_URL=redis://...
    ```
 
 5. **Run migrations**
@@ -90,13 +90,19 @@ This is a Django REST API backend that powers a location-guessing game. Players 
    ```
 
 6. **Start the development server**
+
    ```bash
    python manage.py runserver
    # Or with Daphne for WebSocket support
    daphne backend.asgi:application
    ```
 
-The API will be available at `http://localhost:8000/api/v1/`
+7. **Start the redis server**
+   ```bash
+   redis-server
+   ```
+
+Upon hitting `http://localhost:8000` you'll see blank page with `Home Page` as heading.The API will be available at `http://localhost:8000/api/v1/`
 
 ## API Endpoints
 
@@ -213,7 +219,7 @@ Where `base = 150`. Players advance to the next level after accumulating enough 
 ## Deployment
 
 - **Backend Service**: Render
-- **Database**: Used Supabase PostgresSQl
+- **Database**: Supabase PostgresSQl. Supabase connection string is IPv6 by default and render services are IPv4. Switch to IPv4 session pooler since its free , or go for a IPv4 add-on(it's paid).
 - **Redis**: Render Redis Service
 
 ## Support & Documentation
