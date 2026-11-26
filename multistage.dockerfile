@@ -6,7 +6,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim-trixie
+FROM gcr.io/distroless/python3-debian13
 WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
