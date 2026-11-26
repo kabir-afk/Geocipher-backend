@@ -1,0 +1,5 @@
+.env
+README.md
+collect.js
+progress.json
+db.sqlite
